@@ -1,0 +1,4 @@
+{
+  "extends": "@hdsydsvenskan/eslint-config-hds",
+  "root": true
+}
