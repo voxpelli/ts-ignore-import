@@ -11,10 +11,10 @@ const meow = require('meow');
 
 const cli = meow(`
     Usage
-      $ tool-name [...input]
+      $ ts-ignore-import [...declaration files]
 
     Required options
-      --option, -o          An option of some kind
+      --allow, -a           Adds a
 
     Options
       --dry-run             Runs everything as normal, but doesn't do any changes
@@ -23,38 +23,92 @@ const cli = meow(`
       --version             When set, this tools version will be printed
 
     Examples
-      $ do-your-thing --option wow maybe/a/path/to/something
+      $ ts-ignore-import --allow=bunyan-adapter path/to/file.d.ts
 `, {
   flags: {
-    option: {
-      type: 'string',
-      alias: 'o'
-    },
-    dryRun: { type: 'boolean' },
-    verbose: { type: 'boolean' },
+    allow: { type: 'string', alias: 'a', isMultiple: true },
+    'config-file': { type: 'string', alias: 'c' },
+    'project-dir': { type: 'string', alias: 'p' },
+    'dry-run': { type: 'boolean', 'default': false },
+    silent: { type: 'boolean', 'default': false },
+    verbose: { type: 'boolean', alias: 'v', 'default': false },
   }
 });
 
-const input = cli.input;
+const declarationFilePaths = cli.input.length ? cli.input : undefined;
 
 const {
+  allow: allowedDependencies,
+  tsConfigFilePath,
+  projectDirPath,
   dryRun,
-  verbose
+  silent,
+  verbose,
 } = cli.flags;
 
 // *** Tool setup ***
 
-const { doYourThing } = require('.');
+const chalk = require('chalk');
+const { addAllIgnores } = require('.');
 
-// Do something with the in put, if you're accepting any. Probably don't send it forward un-sanitized to your tool right away
-const stuffDerivedFromInput = input.length;
+/** @type {import('.').VerboseLog} */
+let verboseLog;
 
-doYourThing({
+const VERBOSE_LOG_TITLE_PAD = 30;
+const VERBOSE_LOG_MESSAGE_PAD = 20;
+
+if (verbose) {
+  /** @type {import('.').VerboseLog} */
+  verboseLog = (title, message, extras) => {
+    /** @type {(string|undefined)[]} */
+    const strings = [
+      title && chalk.bold(title.padEnd(VERBOSE_LOG_TITLE_PAD)),
+      title && extras ? (message || '').padEnd(VERBOSE_LOG_MESSAGE_PAD) : message,
+      extras && chalk.dim(extras),
+    ]
+      .filter(item => !!item);
+
+    // eslint-disable-next-line no-console
+    console.log(...strings);
+  };
+} else {
+  verboseLog = () => {};
+}
+
+if (dryRun) verboseLog('Doing a dry run:', 'Yes');
+verboseLog(
+  'Allowed dependencies:',
+  allowedDependencies ? [...allowedDependencies].sort().join(', ') : '',
+  (!allowedDependencies || allowedDependencies.length === 0) ? 'No allowed dependencies' : ''
+);
+
+addAllIgnores({
+  // TODO [meow@>7.0.1]: Remove @ts-ignore if PR has been merged
+  // @ts-ignore Fix in https://github.com/sindresorhus/meow/pull/154
+  allowedDependencies,
+  declarationFilePaths,
+  // TODO [meow@>7.0.1]: Remove @ts-ignore if issue has been fixed
+  // @ts-ignore See https://github.com/sindresorhus/meow/issues/155
   dryRun,
-  stuffDerivedFromInput,
-  verbose,
+  // TODO [meow@>7.0.1]: Remove @ts-ignore if issue has been fixed
+  // @ts-ignore See https://github.com/sindresorhus/meow/issues/155
+  tsConfigFilePath,
+  // TODO [meow@>7.0.1]: Remove @ts-ignore if issue has been fixed
+  // @ts-ignore See https://github.com/sindresorhus/meow/issues/155
+  projectDirPath,
+  verboseLog,
 })
-  .catch(() => {
-    console.error('An unexpected error occured');
+  .then(allIgnores => {
+    // eslint-disable-next-line no-console
+    if (!silent) console.log(chalk.dim('\nIn total'), chalk.bold(allIgnores.size), chalk.dim('ignored dependencies.'));
+    const ignores = [...allIgnores].sort();
+    if (ignores.length) {
+      verboseLog('');
+      verboseLog('All ignored dependencies:', ignores.join(', '));
+    }
+  })
+  .catch(err => {
+    // eslint-disable-next-line no-console
+    console.error(chalk.stderr.bold('An unexpected error occured:'), err.message);
     process.exit(1);
   });
