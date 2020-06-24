@@ -84,12 +84,12 @@ const fsExists = async (path) => {
  */
 
 /**
- * @param {TargetPaths} paths
+ * @param {TargetPaths|undefined} paths
  * @param {ResolvePathsOptions} options
  * @returns {Promise<{ declarationFilePaths: string[], projectDirPath: string, tsConfigFilePath: string }>}
  */
-const resolveTargetPaths = async (paths, options) => {
-  const { resolveWithCwd, verboseLog, } = options;
+const resolveTargetPaths = async (paths = {}, options) => {
+  const { resolveWithCwd, verboseLog } = options;
 
   let {
     declarationFilePaths = [],
@@ -140,14 +140,20 @@ const resolveTargetPaths = async (paths, options) => {
   };
 };
 
-/** @typedef {ResolvePathsOptions & { allowedDependencies?: string[]|undefined, dryRun?: boolean, verboseLog?: VerboseLog }} AddIgnoresOptions */
+/**
+ * @typedef AddIgnoresOptions
+ * @property {string[]|undefined} [allowedDependencies]
+ * @property {boolean} [dryRun]
+ * @property {boolean} [resolveWithCwd]
+ * @property {VerboseLog} [verboseLog]
+ */
 
 /**
- * @param {TargetPaths} target
- * @param {AddIgnoresOptions} options
+ * @param {TargetPaths} [target]
+ * @param {AddIgnoresOptions} [options]
  * @returns {Promise<Set<string>>}
  */
-const addAllIgnores = async (target, options) => {
+const addAllIgnores = async (target, options = {}) => {
   const {
     allowedDependencies = [],
     dryRun = false,

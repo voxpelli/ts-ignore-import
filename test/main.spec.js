@@ -15,15 +15,15 @@ chai.use(sinonChai);
 
 const should = chai.should();
 
-describe('Do Your Thing', () => {
+describe('ts-ignore-import', () => {
   /** @type {import('..')} */
-  let doYourThingModule;
+  let theModule;
 
   beforeEach(() => {
     nock.cleanAll();
     nock.disableNetConnect();
 
-    doYourThingModule = proxyquire('..', {
+    theModule = proxyquire('..', {
       // 'name-of-module-to-be-stubbed': theStubToReplaceItWith
     });
   });
@@ -33,18 +33,15 @@ describe('Do Your Thing', () => {
     if (!nock.isDone()) throw new Error('pending mocks: ' + nock.pendingMocks());
   });
 
-  describe('basic', () => {
-    it('should throw when called without core parameter', async () => {
-      // @ts-ignore
-      const result = doYourThingModule.doYourThing({});
+  describe('addAllIgnores()', () => {
+    it('should throw when used with default paramaters', async () => {
+      const result = theModule.addAllIgnores();
       should.exist(result);
-      await result.should.be.rejectedWith(TypeError);
+      await result.should.be.rejectedWith(Error, 'Failed to find declaration file path.');
     });
 
-    it('should work when called with core parameter', async () => {
-      const result = doYourThingModule.doYourThing({
-        stuffDerivedFromInput: 3
-      });
+    it.skip('should work when called with a valid project target', async () => {
+      const result = theModule.addAllIgnores({}, {});
       should.exist(result);
       await result.should.be.fulfilled;
     });
