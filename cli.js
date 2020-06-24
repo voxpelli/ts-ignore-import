@@ -83,20 +83,22 @@ verboseLog(
 );
 
 addAllIgnores({
-  // TODO [meow@>7.0.1]: Remove @ts-ignore if PR has been merged
-  // @ts-ignore Fix in https://github.com/sindresorhus/meow/pull/154
-  allowedDependencies,
   declarationFilePaths,
-  // TODO [meow@>7.0.1]: Remove @ts-ignore if issue has been fixed
-  // @ts-ignore See https://github.com/sindresorhus/meow/issues/155
-  dryRun,
   // TODO [meow@>7.0.1]: Remove @ts-ignore if issue has been fixed
   // @ts-ignore See https://github.com/sindresorhus/meow/issues/155
   tsConfigFilePath,
   // TODO [meow@>7.0.1]: Remove @ts-ignore if issue has been fixed
   // @ts-ignore See https://github.com/sindresorhus/meow/issues/155
   projectDirPath,
+}, {
+  // TODO [meow@>7.0.1]: Remove @ts-ignore if PR has been merged
+  // @ts-ignore Fix in https://github.com/sindresorhus/meow/pull/154
+  allowedDependencies,
+  // TODO [meow@>7.0.1]: Remove @ts-ignore if issue has been fixed
+  // @ts-ignore See https://github.com/sindresorhus/meow/issues/155
+  dryRun,
   verboseLog,
+  resolveWithCwd: true,
 })
   .then(allIgnores => {
     // eslint-disable-next-line no-console

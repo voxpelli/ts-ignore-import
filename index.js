@@ -7,6 +7,10 @@ const path = require('path');
 const pkgDir = require('pkg-dir');
 const { Project, ts } = require('ts-morph');
 const VError = require('verror');
+const {
+  constants: { F_OK },
+  promises: { access: fsAccess },
+} = require('fs');
 
 /**
  * @callback VerboseLog
@@ -54,52 +58,113 @@ const addIgnore = (file, allowedDependencies, ignoreSet) => {
 };
 
 /**
- * @typedef AddIgnoresOptions
- * @property {string[]|undefined} [allowedDependencies]
+ * @param {string} path
+ * @returns {Promise<boolean>}
+ */
+const fsExists = async (path) => {
+  try {
+    await fsAccess(path, F_OK);
+    return true;
+  } catch (err) {
+    return false;
+  }
+};
+
+/**
+ * @typedef TargetPaths
  * @property {string[]|undefined} [declarationFilePaths]
- * @property {boolean} [dryRun]
- * @property {VerboseLog} [verboseLog]
  * @property {string|undefined} [projectDirPath]
  * @property {string|undefined} [tsConfigFilePath]
  */
 
 /**
- * @param {AddIgnoresOptions} options
- * @returns {Promise<Set<string>>}
+ * @typedef ResolvePathsOptions
+ * @property {boolean} resolveWithCwd
+ * @property {VerboseLog} verboseLog
  */
-const addAllIgnores = async (options) => {
-  const {
-    allowedDependencies = [],
-    declarationFilePaths = ['index.d.ts'],
-    dryRun = false,
-    verboseLog = () => {},
-  } = options;
+
+/**
+ * @param {TargetPaths} paths
+ * @param {ResolvePathsOptions} options
+ * @returns {Promise<{ declarationFilePaths: string[], projectDirPath: string, tsConfigFilePath: string }>}
+ */
+const resolveTargetPaths = async (paths, options) => {
+  const { resolveWithCwd, verboseLog, } = options;
 
   let {
+    declarationFilePaths = [],
     tsConfigFilePath,
     projectDirPath,
-  } = options;
-
-  /** @type {Set<string>} */
-  let completeIgnoreSet = new Set();
-
-  verboseLog('', '', 'Figuring out configuration...');
+  } = paths;
 
   if (!tsConfigFilePath) {
     if (!projectDirPath && declarationFilePaths[0] && path.isAbsolute(declarationFilePaths[0])) {
       projectDirPath = path.dirname(declarationFilePaths[0]);
+      if (projectDirPath) verboseLog('', '', 'Path will be based on first declaration file: ' + declarationFilePaths[0]);
     }
     if (!projectDirPath && require.main) {
-      projectDirPath = await pkgDir(require.main.filename);
+      const requireMainPkgDirPath = await pkgDir(require.main.filename);
+      if (requireMainPkgDirPath && requireMainPkgDirPath !== __dirname) projectDirPath = requireMainPkgDirPath;
+      if (projectDirPath) verboseLog('', '', 'Path will be based on main package: ' + require.main.filename);
+    }
+    if (!projectDirPath && resolveWithCwd) {
+      const cwdTsConfigFilePath = path.resolve(process.cwd(), './tsconfig.json');
+      if (await fsExists(cwdTsConfigFilePath)) {
+        tsConfigFilePath = cwdTsConfigFilePath;
+        verboseLog('', '', 'Resolved tsconfig.json by using current working directory: ' + cwdTsConfigFilePath);
+      }
     }
     if (projectDirPath) {
       tsConfigFilePath = path.resolve(projectDirPath, './tsconfig.json');
+      if (projectDirPath) verboseLog('Resolved tsconfig.json by using relative path.');
     }
   }
   if (!tsConfigFilePath) throw new Error('Can not figure out where to look for tsconfig.json file');
   if (!projectDirPath) {
     projectDirPath = path.dirname(tsConfigFilePath);
+    if (projectDirPath) verboseLog('', '', 'Setting relative path to the path of tsconfig.json.');
   }
+  if (projectDirPath && declarationFilePaths.length === 0) {
+    const guessedDeclarationFilePath = path.resolve(projectDirPath, './index.d.ts');
+    if (await fsExists(guessedDeclarationFilePath)) {
+      declarationFilePaths[0] = guessedDeclarationFilePath;
+      verboseLog('', '', 'Resolved the declaration file paths by using current tsconfig.json: ' + guessedDeclarationFilePath);
+    } else {
+      throw new Error('Failed to find declaration file path.');
+    }
+  }
+  return {
+    declarationFilePaths,
+    projectDirPath,
+    tsConfigFilePath
+  };
+};
+
+/** @typedef {ResolvePathsOptions & { allowedDependencies?: string[]|undefined, dryRun?: boolean, verboseLog?: VerboseLog }} AddIgnoresOptions */
+
+/**
+ * @param {TargetPaths} target
+ * @param {AddIgnoresOptions} options
+ * @returns {Promise<Set<string>>}
+ */
+const addAllIgnores = async (target, options) => {
+  const {
+    allowedDependencies = [],
+    dryRun = false,
+    resolveWithCwd = false,
+    verboseLog = () => {},
+  } = options;
+
+  const {
+    declarationFilePaths,
+    tsConfigFilePath,
+    projectDirPath,
+  } = await resolveTargetPaths(target, { resolveWithCwd, verboseLog });
+
+  /** @type {Set<string>} */
+  let completeIgnoreSet = new Set();
+
+  verboseLog('', '', 'Figuring out configuration...');
 
   const project = new Project({
     tsConfigFilePath,
