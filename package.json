@@ -1,7 +1,7 @@
 {
   "name": "@hdsydsvenskan/ts-ignore-import",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "license": "MIT",
   "description": "TS Ignore Import",
   "homepage": "https://github.com/Sydsvenskan/node-ts-ignore-import",
