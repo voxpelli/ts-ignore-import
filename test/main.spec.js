@@ -37,7 +37,7 @@ describe('ts-ignore-import', () => {
     it('should throw when used with default paramaters', async () => {
       const result = theModule.addAllIgnores();
       should.exist(result);
-      await result.should.be.rejectedWith(Error, 'Failed to find declaration file path.');
+      await result.should.be.rejectedWith(Error, 'Can not figure out where to look for tsconfig.json file');
     });
 
     it.skip('should work when called with a valid project target', async () => {

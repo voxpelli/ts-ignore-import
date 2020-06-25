@@ -5,21 +5,38 @@
 
 'use strict';
 
-// *** CLI setup ***
+const path = require('path');
 
+const chalk = require('chalk');
+const { cosmiconfig } = require('cosmiconfig');
 const meow = require('meow');
+const VError = require('verror');
+
+const { addAllIgnores } = require('.');
+
+// *** CLI setup ***
 
 const cli = meow(`
     Usage
       $ ts-ignore-import [...declaration files]
 
-    Required options
-      --allow, -a           Adds a
+    Adds @ts-ignore to imports/requires in TypeScript declaration files. By default it adds it to all imports/requires, but one can mark modules to be exempted from it by using the --allow flag.
 
-    Options
-      --dry-run             Runs everything as normal, but doesn't do any changes
+    Auto-discoveres tsconfig.json if none has been specified and uto-discoveres a top level index.d.ts declaration file if no specific declaration files has been specified.
+
+    Will traverse all local declaration files depended on by included declaration files and process them as well.
+
+    Core options
+      --allow, -a           Marks a module as allowed. It will then not have a @ts-ignore added. (Already added ignores are kept though)
+      --skip, -s            Skip a specific file. Follows .gitignore syntax. Matched against file paths relative to resolved path of ts-config.
+      --ts-config, -t       Point to a tsconfig.json file to override any auto-discovered one
+
+    Additional options
+      --debug               Activates some very verbose logging
+      --dry-run             Runs everything like normal, but doesn't save any changes
       --help                When set, this help will be printed
-      --verbose             When set, more verbose feedback will be surfaced
+      --silent              When set, no feedback will be printed
+      --verbose, -v         When set, more verbose feedback will be printed
       --version             When set, this tools version will be printed
 
     Examples
@@ -27,8 +44,9 @@ const cli = meow(`
 `, {
   flags: {
     allow: { type: 'string', alias: 'a', isMultiple: true },
-    'config-file': { type: 'string', alias: 'c' },
-    'project-dir': { type: 'string', alias: 'p' },
+    skip: { type: 'string', alias: 'i', isMultiple: true },
+    'ts-config': { type: 'string', alias: 't' },
+    debug: { type: 'boolean', 'default': false },
     'dry-run': { type: 'boolean', 'default': false },
     silent: { type: 'boolean', 'default': false },
     verbose: { type: 'boolean', alias: 'v', 'default': false },
@@ -37,80 +55,119 @@ const cli = meow(`
 
 const declarationFilePaths = cli.input.length ? cli.input : undefined;
 
+let {
+  tsConfig: tsConfigFilePath,
+} = cli.flags;
+
 const {
   allow: allowedDependencies,
-  tsConfigFilePath,
-  projectDirPath,
+  skip: ignoreFile,
+  debug,
   dryRun,
   silent,
   verbose,
 } = cli.flags;
 
-// *** Tool setup ***
+// *** Logging setup ***
 
-const chalk = require('chalk');
-const { addAllIgnores } = require('.');
+const LOG_TITLE_PAD = 30;
+const LOG_MESSAGE_PAD = 25;
+const LOG_TITLE_PAD_LONG = LOG_TITLE_PAD + LOG_MESSAGE_PAD + 1;
+const LOG_MESSAGE_PAD_LONG = LOG_MESSAGE_PAD + 10;
+
+/**
+ * @param {'log'|'error'} level
+ * @param {string} title
+ * @param {string} [message]
+ * @param {string} [extras]
+ * @param {boolean} [dimItAll]
+ * @returns {void}
+ */
+const log = (level, title, message, extras, dimItAll) => {
+  /** @type {string} */
+  let resolvedMessage = [
+    title && chalk.bold((message || extras) ? title.padEnd(title.length > LOG_TITLE_PAD ? LOG_TITLE_PAD_LONG : LOG_TITLE_PAD) : title),
+    extras ? (message || '').padEnd(message && message.length >= LOG_MESSAGE_PAD ? LOG_MESSAGE_PAD_LONG : LOG_MESSAGE_PAD) : message,
+    extras && chalk.dim(extras),
+  ]
+    .filter(item => !!item)
+    .join(' ');
+
+  if (dimItAll) resolvedMessage = chalk.dim(resolvedMessage);
+  if (level === 'error') resolvedMessage = chalk.bgRed.whiteBright(resolvedMessage);
+
+  // eslint-disable-next-line no-console
+  console[level](resolvedMessage);
+};
 
 /** @type {import('.').VerboseLog} */
-let verboseLog;
+const verboseLog = (verbose || debug)
+  ? (title, message, extras, dimItAll) => log('log', title, message, extras, dimItAll)
+  : () => {};
 
-const VERBOSE_LOG_TITLE_PAD = 30;
-const VERBOSE_LOG_MESSAGE_PAD = 20;
+verboseLog('Time to ignore TypeScript imports!');
 
-if (verbose) {
-  /** @type {import('.').VerboseLog} */
-  verboseLog = (title, message, extras) => {
-    /** @type {(string|undefined)[]} */
-    const strings = [
-      title && chalk.bold(title.padEnd(VERBOSE_LOG_TITLE_PAD)),
-      title && extras ? (message || '').padEnd(VERBOSE_LOG_MESSAGE_PAD) : message,
-      extras && chalk.dim(extras),
-    ]
-      .filter(item => !!item);
-
-    // eslint-disable-next-line no-console
-    console.log(...strings);
-  };
-} else {
-  verboseLog = () => {};
-}
+// *** Tool setup ***
 
 if (dryRun) verboseLog('Doing a dry run:', 'Yes');
-verboseLog(
-  'Allowed dependencies:',
-  allowedDependencies ? [...allowedDependencies].sort().join(', ') : '',
-  (!allowedDependencies || allowedDependencies.length === 0) ? 'No allowed dependencies' : ''
-);
 
-addAllIgnores({
-  declarationFilePaths,
-  // TODO [meow@>7.0.1]: Remove @ts-ignore if issue has been fixed
-  // @ts-ignore See https://github.com/sindresorhus/meow/issues/155
-  tsConfigFilePath,
-  // TODO [meow@>7.0.1]: Remove @ts-ignore if issue has been fixed
-  // @ts-ignore See https://github.com/sindresorhus/meow/issues/155
-  projectDirPath,
-}, {
-  // TODO [meow@>7.0.1]: Remove @ts-ignore if PR has been merged
-  // @ts-ignore Fix in https://github.com/sindresorhus/meow/pull/154
-  allowedDependencies,
-  // TODO [meow@>7.0.1]: Remove @ts-ignore if issue has been fixed
-  // @ts-ignore See https://github.com/sindresorhus/meow/issues/155
-  dryRun,
-  verboseLog,
-  resolveWithCwd: true,
+const explorer = cosmiconfig('tsimportignore', {
+  packageProp: 'tsImportIgnore',
+});
+
+explorer.search().then(async (result) => {
+  const config = (result && result.config) || {};
+
+  if (result && result.config) verboseLog('Uses configuration file:', result.filepath);
+
+  const mergedIgnoreFiles = [
+    ...(Array.isArray(config.skipFiles) ? config.skipFiles : []),
+    ...(ignoreFile || []),
+  ];
+
+  const mergedAllowedDependencies = [
+    ...(Array.isArray(config.allow) ? config.allow : []),
+    ...(allowedDependencies || []),
+  ];
+
+  const mergedDeclarationFilePaths = [
+    ...(Array.isArray(config.files) ? config.files : []),
+    ...(declarationFilePaths || []),
+  ];
+
+  if (result && !tsConfigFilePath && config.tsConfigFilePath) {
+    tsConfigFilePath = path.resolve(result.filepath, config.tsConfigFilePath);
+  }
+
+  verboseLog(
+    'Allowed dependencies:',
+    mergedAllowedDependencies.length + ' dependencies',
+    mergedAllowedDependencies.length ? [...mergedAllowedDependencies].sort().join(', ') : ''
+  );
+
+  const { ignored, sourceFileCount } = await addAllIgnores({
+    declarationFilePaths: mergedDeclarationFilePaths,
+    // TODO [meow@>7.0.1]: Remove @ts-ignore if issue has been fixed
+    // @ts-ignore See https://github.com/sindresorhus/meow/issues/155
+    tsConfigFilePath,
+  }, {
+    allowedDependencies: mergedAllowedDependencies,
+    // TODO [meow@>7.0.1]: Remove @ts-ignore if issue has been fixed
+    // @ts-ignore See https://github.com/sindresorhus/meow/issues/155
+    dryRun,
+    ignoreFiles: mergedIgnoreFiles.length ? mergedIgnoreFiles : undefined,
+    debug,
+    verboseLog,
+    resolveWithCwd: true,
+  });
+
+  if (!silent) {
+    log('log', `Found and ignored ${ignored.size} ${ignored.size === 1 ? 'dependency' : 'dependencies'} across ${sourceFileCount} ${sourceFileCount === 1 ? 'file' : 'files'}:`, [...ignored].sort().join(', '));
+  }
 })
-  .then(allIgnores => {
-    // eslint-disable-next-line no-console
-    if (!silent) console.log(chalk.dim('\nIn total'), chalk.bold(allIgnores.size), chalk.dim('ignored dependencies.'));
-    const ignores = [...allIgnores].sort();
-    if (ignores.length) {
-      verboseLog('');
-      verboseLog('All ignored dependencies:', ignores.join(', '));
-    }
-  })
   .catch(err => {
-    // eslint-disable-next-line no-console
-    console.error(chalk.stderr.bold('An unexpected error occured:'), err.message);
+    log('error', err.name === 'VError' ? 'An error occured:' : 'An unexpected error occured:', err.message);
+    verboseLog('Stacktrace:');
+    verboseLog('', VError.fullStack(err));
     process.exit(1);
   });
