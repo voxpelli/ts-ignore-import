@@ -15,7 +15,9 @@ chai.use(sinonChai);
 
 const should = chai.should();
 
-describe('ts-ignore-import', () => {
+describe('ts-ignore-import', function () {
+  this.timeout(5000);
+
   /** @type {import('..')} */
   let theModule;
 
