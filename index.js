@@ -22,17 +22,25 @@ const { resolveTargetPaths } = require('./lib/target-paths');
  * @param {import('ts-morph').SourceFile} file
  * @param {string[]} allowedDependencies
  * @param {Set<string>} ignoreSet
+ * @param {{ debugLog: VerboseLog }} options
  * @returns {boolean}
  */
-const addIgnore = (file, allowedDependencies, ignoreSet) => {
-  return file.getImportStringLiterals().some(literal => {
+const addIgnore = (file, allowedDependencies, ignoreSet, { debugLog }) => {
+  for (const literal of file.getImportStringLiterals()) {
     const text = literal.getText();
 
-    if (text.startsWith('".') || text.startsWith('\'.') || allowedDependencies.some(target => `"${target}"` === text)) return;
+    if (text.startsWith('".') || text.startsWith('\'.')) {
+      continue;
+    }
+    if (allowedDependencies.some(target => `"${target}"` === text || `'${target}'` === text)) {
+      continue;
+    }
 
     const importNodeChild = literal.getParentWhile(node => ![ts.SyntaxKind.ImportType].includes(node.getKind()));
     const importNode = importNodeChild && importNodeChild.getParent();
-    if (!importNode) return;
+    if (!importNode) {
+      continue;
+    }
 
     /** @type {import('ts-morph').Node|undefined} */
     let firstOnLine;
@@ -46,14 +54,19 @@ const addIgnore = (file, allowedDependencies, ignoreSet) => {
     const lineToComment = firstOnLine || importNode;
 
     if (lineToComment.getLeadingCommentRanges().map(comment => comment.getText()).join('\n').includes('// @ts-ignore')) {
+      if (!ignoreSet.has(text)) debugLog('Found additional module already ignored in code:', text, '', true);
       ignoreSet.add(text);
     } else {
+      debugLog('Adding ignore for:', text, '', true);
       const first = false && lineToComment.isFirstNodeOnLine();
       file.insertText(lineToComment.getStart(), (first ? '' : '\n') + '// @ts-ignore\n');
       ignoreSet.add(text);
+      // Found something to ignore, lets quit the loop and tell that we were successful!
       return true;
     }
-  });
+  }
+
+  return false;
 };
 
 /**
@@ -90,6 +103,8 @@ const addAllIgnores = async (target, options = {}) => {
   /** @type {Set<string>} */
   let completeIgnoreSet = new Set();
 
+  const debugLog = debug ? verboseLog : () => {};
+
   verboseLog('Figuring out configuration...', '', '', true);
 
   const project = new Project({
@@ -121,7 +136,7 @@ const addAllIgnores = async (target, options = {}) => {
 
     verboseLog('Processing:', verboseLogFilename, '', true);
     try {
-      while (addIgnore(file, allowedDependencies, ignoreSet));
+      while (addIgnore(file, allowedDependencies, ignoreSet, { debugLog }));
     } catch (err) {
       throw new VError(err, `Failed to process ${file.getFilePath()}`);
     }
