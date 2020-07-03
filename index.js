@@ -32,7 +32,12 @@ const addIgnore = (file, allowedDependencies, ignoreSet, { debugLog }) => {
     if (text.startsWith('".') || text.startsWith('\'.')) {
       continue;
     }
-    if (allowedDependencies.some(target => `"${target}"` === text || `'${target}'` === text)) {
+    if (allowedDependencies.some(target => {
+      if (`"${target}"` === text) return true;
+      if (`'${target}'` === text) return true;
+      if (text.startsWith(`"${target}/`)) return true;
+      if (text.startsWith(`'${target}/`)) return true;
+    })) {
       continue;
     }
 
