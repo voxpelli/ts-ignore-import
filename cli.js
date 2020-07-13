@@ -111,8 +111,8 @@ verboseLog('Time to ignore TypeScript imports!');
 
 if (dryRun) verboseLog('Doing a dry run:', 'Yes');
 
-const explorer = cosmiconfig('tsimportignore', {
-  packageProp: 'tsImportIgnore',
+const explorer = cosmiconfig('tsignoreimport', {
+  packageProp: 'tsIgnoreImport',
 });
 
 explorer.search().then(async (result) => {
