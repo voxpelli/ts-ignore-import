@@ -18,11 +18,7 @@ jobs:
       with:
         node-version: ${{ matrix.node_version }}
     - name: yarn install
-      env:
-        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      run: |
-        npm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
-        yarn install
+      run: yarn install
     - name: Build
       run: yarn run build
     - name: Mocha tests
