@@ -9,7 +9,7 @@ Adds `// @ts-ignore` to unwanted `import` and `require` targets in TypeScript de
 ## Install
 
 ```bash
-npm install -g @hdsydsvenskan/ts-ignore-import
+yarn add --dev @hdsydsvenskan/ts-ignore-import
 ```
 
 ## Syntax
