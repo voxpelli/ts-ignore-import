@@ -33,11 +33,12 @@
     "check:installed-check": "installed-check -i eslint",
     "check:eslint": "eslint --ext .js --ext .jsx . ",
     "check:typescript": "tsc",
-    "check": "run-p check:*",
+    "check": "run-s clean && run-p check:*",
     "clean:declarations": "rm -rf $(find . -maxdepth 2 -type f -name '*.d.ts')",
     "clean": "run-p clean:*",
     "prepublishOnly": "run-s build",
     "test:mocha": "NODE_ENV=test nyc --reporter=lcov --reporter text mocha test/**/*.spec.js",
+    "test-checkless": "run-s test:*",
     "test": "run-s clean check test:*"
   },
   "devDependencies": {
