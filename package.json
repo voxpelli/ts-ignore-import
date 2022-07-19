@@ -9,7 +9,7 @@
     "url": "git://github.com/Sydsvenskan/node-ts-ignore-import"
   },
   "engines": {
-    "node": ">=12.0.0"
+    "node": "^14.18.0 || >=16.0.0"
   },
   "bin": {
     "ts-ignore-import": "cli.js"
