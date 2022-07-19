@@ -1,4 +1,4 @@
 {
-  "extends": "@hdsydsvenskan/eslint-config-hds",
+  "extends": "@voxpelli",
   "root": true
 }
