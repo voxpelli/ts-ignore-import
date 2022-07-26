@@ -1,23 +1,18 @@
 name: Linting
 
-on: [push]
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
   lint:
-    name: Static code analysis / Linting
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        node_version: [12]
-        os: [ubuntu-latest]
-
-    steps:
-    - uses: actions/checkout@v1
-    - name: Use Node.js ${{ matrix.node_version }}
-      uses: actions/setup-node@v1
-      with:
-        version: ${{ matrix.node_version }}
-    - name: yarn install
-      run: yarn install
-    - name: Linting
-      run: yarn run check
+    uses: voxpelli/ghatemplates/.github/workflows/lint.yml@main
