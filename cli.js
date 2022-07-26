@@ -5,7 +5,7 @@
 
 'use strict';
 
-const path = require('path');
+const path = require('node:path');
 
 const chalk = require('chalk');
 const { cosmiconfig } = require('cosmiconfig');
@@ -61,10 +61,10 @@ let {
 
 const {
   allow: allowedDependencies,
-  skip: ignoreFile,
   debug,
   dryRun,
   silent,
+  skip: ignoreFile,
   verbose,
 } = cli.flags;
 

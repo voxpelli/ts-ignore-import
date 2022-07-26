@@ -3,7 +3,7 @@
 
 'use strict';
 
-const path = require('path');
+const path = require('node:path');
 const { Project, ts } = require('ts-morph');
 const VError = require('verror');
 
@@ -37,6 +37,7 @@ const addIgnore = (file, allowedDependencies, ignoreSet, { debugLog }) => {
       if (`'${target}'` === text) return true;
       if (text.startsWith(`"${target}/`)) return true;
       if (text.startsWith(`'${target}/`)) return true;
+      return false;
     })) {
       continue;
     }
@@ -101,8 +102,8 @@ const addAllIgnores = async (target, options = {}) => {
 
   const {
     declarationFilePaths,
-    tsConfigFilePath,
     projectDirPath,
+    tsConfigFilePath,
   } = await resolveTargetPaths(target, { ignoreFiles, resolveWithCwd, verboseLog });
 
   /** @type {Set<string>} */
