@@ -79,7 +79,7 @@
   "dependencies": {
     "chalk": "^4.1.0",
     "cosmiconfig": "^6.0.0",
-    "globby": "^11.0.1",
+    "globby": "^14.0.0",
     "ignore": "^5.1.8",
     "meow": "^7.0.1",
     "pkg-dir": "^4.2.0",
