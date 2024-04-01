@@ -10,7 +10,7 @@ const path = require('node:path');
 const chalk = require('chalk');
 const { cosmiconfig } = require('cosmiconfig');
 const meow = require('meow');
-const VError = require('verror');
+const { messageWithCauses, stackWithCauses } = require('pony-cause');
 
 const { addAllIgnores } = require('.');
 
@@ -50,7 +50,7 @@ const cli = meow(`
     'dry-run': { type: 'boolean', 'default': false },
     silent: { type: 'boolean', 'default': false },
     verbose: { type: 'boolean', alias: 'v', 'default': false },
-  }
+  },
 });
 
 const declarationFilePaths = cli.input.length ? cli.input : undefined;
@@ -161,13 +161,17 @@ explorer.search().then(async (result) => {
     resolveWithCwd: true,
   });
 
+  // TODO: Remove ignore when refactored into ESM module
+  // eslint-disable-next-line promise/always-return
   if (!silent) {
     log('log', `Found and ignored ${ignored.size} ${ignored.size === 1 ? 'dependency' : 'dependencies'} across ${sourceFileCount} ${sourceFileCount === 1 ? 'file' : 'files'}:`, [...ignored].sort().join(', '));
   }
 })
+  // TODO: Remove ignore when refactored into ESM module
+  // eslint-disable-next-line unicorn/prefer-top-level-await
   .catch(err => {
-    log('error', err.name === 'VError' ? 'An error occured:' : 'An unexpected error occured:', err.message);
+    log('error', 'An error occured:', messageWithCauses(err.message));
     verboseLog('Stacktrace:');
-    verboseLog('', VError.fullStack(err));
+    verboseLog('', stackWithCauses(err));
     process.exit(1);
   });

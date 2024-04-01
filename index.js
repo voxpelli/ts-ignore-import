@@ -4,8 +4,8 @@
 'use strict';
 
 const path = require('node:path');
+
 const { Project, ts } = require('ts-morph');
-const VError = require('verror');
 
 const { resolveTargetPaths } = require('./lib/target-paths');
 
@@ -64,8 +64,7 @@ const addIgnore = (file, allowedDependencies, ignoreSet, { debugLog }) => {
       ignoreSet.add(text);
     } else {
       debugLog('Adding ignore for:', text, '', true);
-      const first = false && lineToComment.isFirstNodeOnLine();
-      file.insertText(lineToComment.getStart(), (first ? '' : '\n') + '// @ts-ignore\n');
+      file.insertText(lineToComment.getStart(), '\n// @ts-ignore\n');
       ignoreSet.add(text);
       // Found something to ignore, lets quit the loop and tell that we were successful!
       return true;
@@ -93,11 +92,11 @@ const addIgnore = (file, allowedDependencies, ignoreSet, { debugLog }) => {
 const addAllIgnores = async (target, options = {}) => {
   const {
     allowedDependencies = [],
-    ignoreFiles = ['node_modules'],
+    debug = false,
     dryRun = false,
+    ignoreFiles = ['node_modules'],
     resolveWithCwd = false,
     verboseLog = () => {},
-    debug = false,
   } = options;
 
   const {
@@ -115,7 +114,7 @@ const addAllIgnores = async (target, options = {}) => {
 
   const project = new Project({
     tsConfigFilePath,
-    addFilesFromTsConfig: false
+    skipAddingFilesFromTsConfig: true,
   });
   project.enableLogging(debug);
 
@@ -127,8 +126,8 @@ const addAllIgnores = async (target, options = {}) => {
     verboseLog('Adding file:', path.relative(projectDirPath, filePath), filePath);
     try {
       project.addSourceFileAtPath(filePath);
-    } catch (err) {
-      throw new VError(err, 'Failed to add source file');
+    } catch (cause) {
+      throw new Error('Failed to add source file', { cause });
     }
   }
 
@@ -144,8 +143,8 @@ const addAllIgnores = async (target, options = {}) => {
     verboseLog('Processing:', verboseLogFilename, '', true);
     try {
       while (addIgnore(file, allowedDependencies, ignoreSet, { debugLog }));
-    } catch (err) {
-      throw new VError(err, `Failed to process ${file.getFilePath()}`);
+    } catch (cause) {
+      throw new Error(`Failed to process ${file.getFilePath()}`, { cause });
     }
 
     const cleanedIgnores = [...ignoreSet].map(item => item.slice(1, -1));
@@ -169,7 +168,7 @@ const addAllIgnores = async (target, options = {}) => {
 
   return {
     ignored: completeIgnoreSet,
-    sourceFileCount: project.getSourceFiles().length
+    sourceFileCount: project.getSourceFiles().length,
   };
 };
 
