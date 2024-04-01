@@ -5,36 +5,14 @@
 
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
-const nock = require('nock');
-const proxyquire = require('proxyquire').noPreserveCache().noCallThru();
-const sinon = require('sinon');
-const sinonChai = require('sinon-chai');
+
+const theModule = require('../index.js');
 
 chai.use(chaiAsPromised);
-chai.use(sinonChai);
 
 const should = chai.should();
 
 describe('ts-ignore-import', function () {
-  this.timeout(5000);
-
-  /** @type {import('..')} */
-  let theModule;
-
-  beforeEach(() => {
-    nock.cleanAll();
-    nock.disableNetConnect();
-
-    theModule = proxyquire('..', {
-      // 'name-of-module-to-be-stubbed': theStubToReplaceItWith
-    });
-  });
-
-  afterEach(() => {
-    sinon.restore();
-    if (!nock.isDone()) throw new Error('pending mocks: ' + nock.pendingMocks());
-  });
-
   describe('addAllIgnores()', () => {
     it('should throw when used with default paramaters', async () => {
       const result = theModule.addAllIgnores();
