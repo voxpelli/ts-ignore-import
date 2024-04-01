@@ -137,6 +137,7 @@ const addAllIgnores = async (target, options = {}) => {
 
   verboseLog('Processing files...', '', '', true);
   for (const file of project.getSourceFiles()) {
+    /** @type {Set<string>} */
     const ignoreSet = new Set();
     const verboseLogFilename = path.relative(projectDirPath, file.getFilePath());
 
