@@ -38,7 +38,7 @@
     "check:tsc": "tsc",
     "check:type-coverage": "type-coverage --detail --strict --at-least 94 --ignore-files 'test/*'",
     "check": "run-s clean && run-p check:*",
-    "clean:declarations-top": "rm -rf $(find . -maxdepth 1 -type f -name '*.d.ts*' ! -name 'index.d.ts')",
+    "clean:declarations-top": "rm -rf $(find . -maxdepth 1 -type f -name '*.d.ts*')",
     "clean:declarations-lib": "rm -rf $(find lib -type f -name '*.d.ts*' ! -name '*-types.d.ts')",
     "clean": "run-p clean:*",
     "prepare": "husky",
