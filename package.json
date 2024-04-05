@@ -81,7 +81,7 @@
     "cosmiconfig": "^6.0.0",
     "globby": "^11.0.1",
     "ignore": "^5.1.8",
-    "meow": "^7.0.1",
+    "meow": "^13.0.0",
     "pkg-dir": "^4.2.0",
     "pony-cause": "^2.1.10",
     "ts-morph": "^22.0.0"
