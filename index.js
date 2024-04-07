@@ -37,7 +37,7 @@ function addIgnore (file, allowedDependencies, ignoreSet, { debugLog, verboseLog
       continue;
     }
 
-    const importNodeChild = literal.getParentWhile(node => ![ts.SyntaxKind.ImportType].includes(node.getKind()));
+    const importNodeChild = literal.getParentWhile(node => node.getKind() !== ts.SyntaxKind.ImportType);
     const importNode = importNodeChild && importNodeChild.getParent();
     if (!importNode) {
       continue;
@@ -46,11 +46,13 @@ function addIgnore (file, allowedDependencies, ignoreSet, { debugLog, verboseLog
     /** @type {import('ts-morph').Node|undefined} */
     let firstOnLine;
 
-    const lineNumber = importNode.getStartLineNumber();
+    // TODO: Possibly readd pretty print
+    // const lineNumber = importNode.getStartLineNumber();
 
-    if (lineNumber !== 1 && !importNode.isFirstNodeOnLine()) {
-      firstOnLine = importNode.getParentWhile(parent => parent.getStartLineNumber() === lineNumber);
-    }
+    // if (lineNumber !== 1 && !importNode.isFirstNodeOnLine()) {
+    //   console.log(true);
+    //   firstOnLine = importNode.getParentWhile(parent => parent.getStartLineNumber() === lineNumber);
+    // }
 
     const lineToComment = firstOnLine || importNode;
 

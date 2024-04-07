@@ -38,14 +38,15 @@ const cli = meow(`
       $ ts-ignore-import --allow=bunyan-adapter path/to/file.d.ts
 `, {
   flags: {
-    allow: { type: 'string', alias: 'a', isMultiple: true },
-    skip: { type: 'string', alias: 'i', isMultiple: true },
-    'ts-config': { type: 'string', alias: 't' },
+    allow: { type: 'string', shortFlag: 'a', isMultiple: true },
+    skip: { type: 'string', shortFlag: 'i', isMultiple: true },
+    tsConfig: { type: 'string', shortFlag: 't' },
     debug: { type: 'boolean', 'default': false },
-    'dry-run': { type: 'boolean', 'default': false },
+    dryRun: { type: 'boolean', 'default': false },
     silent: { type: 'boolean', 'default': false },
-    verbose: { type: 'boolean', alias: 'v', 'default': false },
+    verbose: { type: 'boolean', shortFlag: 'v', 'default': false },
   },
+  importMeta: import.meta,
 });
 
 const declarationFilePaths = cli.input.length ? cli.input : undefined;
@@ -143,13 +144,9 @@ try {
 
   const { ignored, sourceFileCount } = await addAllIgnores({
     declarationFilePaths: mergedDeclarationFilePaths,
-    // TODO [meow@>7.0.1]: Remove @ts-ignore if issue has been fixed
-    // @ts-ignore See https://github.com/sindresorhus/meow/issues/155
     tsConfigFilePath,
   }, {
     allowedDependencies: mergedAllowedDependencies,
-    // TODO [meow@>7.0.1]: Remove @ts-ignore if issue has been fixed
-    // @ts-ignore See https://github.com/sindresorhus/meow/issues/155
     dryRun,
     ignoreFiles: mergedIgnoreFiles.length ? mergedIgnoreFiles : undefined,
     debug,
