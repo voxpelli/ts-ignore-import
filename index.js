@@ -1,13 +1,8 @@
-// @ts-check
-/// <reference types="node" />
+import { relative } from 'node:path';
 
-'use strict';
+import { Project, ts } from 'ts-morph';
 
-const path = require('node:path');
-
-const { Project, ts } = require('ts-morph');
-
-const { resolveTargetPaths } = require('./lib/target-paths');
+import { resolveTargetPaths } from './lib/target-paths.js';
 
 /**
  * @callback VerboseLog
@@ -22,10 +17,10 @@ const { resolveTargetPaths } = require('./lib/target-paths');
  * @param {import('ts-morph').SourceFile} file
  * @param {string[]} allowedDependencies
  * @param {Set<string>} ignoreSet
- * @param {{ debugLog: VerboseLog }} options
+ * @param {{ debugLog: VerboseLog, verboseLogFilename: string }} options
  * @returns {boolean}
  */
-const addIgnore = (file, allowedDependencies, ignoreSet, { debugLog }) => {
+function addIgnore (file, allowedDependencies, ignoreSet, { debugLog, verboseLogFilename }) {
   for (const literal of file.getImportStringLiterals()) {
     const text = literal.getText();
 
@@ -63,7 +58,7 @@ const addIgnore = (file, allowedDependencies, ignoreSet, { debugLog }) => {
       if (!ignoreSet.has(text)) debugLog('Found additional module already ignored in code:', text, '', true);
       ignoreSet.add(text);
     } else {
-      debugLog('Adding ignore for:', text, '', true);
+      debugLog('Adding ignore for:', text, verboseLogFilename, true);
       file.insertText(lineToComment.getStart(), '\n// @ts-ignore\n');
       ignoreSet.add(text);
       // Found something to ignore, lets quit the loop and tell that we were successful!
@@ -72,7 +67,7 @@ const addIgnore = (file, allowedDependencies, ignoreSet, { debugLog }) => {
   }
 
   return false;
-};
+}
 
 /**
  * @typedef AddIgnoresOptions
@@ -85,11 +80,11 @@ const addIgnore = (file, allowedDependencies, ignoreSet, { debugLog }) => {
  */
 
 /**
- * @param {import('./lib/target-paths').TargetPaths} [target]
+ * @param {import('./lib/target-paths.js').TargetPaths} [target]
  * @param {AddIgnoresOptions} [options]
  * @returns {Promise<{ ignored: Set<string>, sourceFileCount: number }>}
  */
-const addAllIgnores = async (target, options = {}) => {
+export async function addAllIgnores (target, options = {}) {
   const {
     allowedDependencies = [],
     debug = false,
@@ -119,11 +114,11 @@ const addAllIgnores = async (target, options = {}) => {
   project.enableLogging(debug);
 
   verboseLog('Paths will be relative to:', projectDirPath);
-  verboseLog('Using tsconfig file at:', path.relative(projectDirPath, tsConfigFilePath), tsConfigFilePath);
+  verboseLog('Using tsconfig file at:', relative(projectDirPath, tsConfigFilePath), tsConfigFilePath);
 
   verboseLog('Adding files...', '', '', true);
   for (const filePath of declarationFilePaths) {
-    verboseLog('Adding file:', path.relative(projectDirPath, filePath), filePath);
+    verboseLog('Adding file:', relative(projectDirPath, filePath), filePath);
     try {
       project.addSourceFileAtPath(filePath);
     } catch (cause) {
@@ -138,11 +133,11 @@ const addAllIgnores = async (target, options = {}) => {
   for (const file of project.getSourceFiles()) {
     /** @type {Set<string>} */
     const ignoreSet = new Set();
-    const verboseLogFilename = path.relative(projectDirPath, file.getFilePath());
+    const verboseLogFilename = relative(projectDirPath, file.getFilePath());
 
     verboseLog('Processing:', verboseLogFilename, '', true);
     try {
-      while (addIgnore(file, allowedDependencies, ignoreSet, { debugLog }));
+      while (addIgnore(file, allowedDependencies, ignoreSet, { debugLog, verboseLogFilename }));
     } catch (cause) {
       throw new Error(`Failed to process ${file.getFilePath()}`, { cause });
     }
@@ -170,6 +165,4 @@ const addAllIgnores = async (target, options = {}) => {
     ignored: completeIgnoreSet,
     sourceFileCount: project.getSourceFiles().length,
   };
-};
-
-module.exports = { addAllIgnores };
+}

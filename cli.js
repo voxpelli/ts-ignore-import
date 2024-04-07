@@ -1,18 +1,13 @@
 #!/usr/bin/env node
 
-// @ts-check
-/// <reference types="node" />
+import path from 'node:path';
 
-'use strict';
+import chalk from 'chalk';
+import { lilconfig } from 'lilconfig';
+import meow from 'meow';
+import { messageWithCauses, stackWithCauses } from 'pony-cause';
 
-const path = require('node:path');
-
-const chalk = require('chalk');
-const { cosmiconfig } = require('cosmiconfig');
-const meow = require('meow');
-const { messageWithCauses, stackWithCauses } = require('pony-cause');
-
-const { addAllIgnores } = require('.');
+import { addAllIgnores } from './index.js';
 
 // *** CLI setup ***
 
@@ -100,7 +95,7 @@ const log = (level, title, message, extras, dimItAll) => {
   console[level](resolvedMessage);
 };
 
-/** @type {import('.').VerboseLog} */
+/** @type {import('./index.js').VerboseLog} */
 const verboseLog = (verbose || debug)
   ? (title, message, extras, dimItAll) => log('log', title, message, extras, dimItAll)
   : () => {};
@@ -111,11 +106,12 @@ verboseLog('Time to ignore TypeScript imports!');
 
 if (dryRun) verboseLog('Doing a dry run:', 'Yes');
 
-const explorer = cosmiconfig('tsignoreimport', {
-  packageProp: 'tsIgnoreImport',
-});
+try {
+  const result = await lilconfig('tsignoreimport', {
+    packageProp: 'tsIgnoreImport',
+  }).search();
 
-explorer.search().then(async (result) => {
+  // TODO: Use eg ajv to validate
   const config = (result && result.config) || {};
 
   if (result && result.config) verboseLog('Uses configuration file:', result.filepath);
@@ -161,17 +157,21 @@ explorer.search().then(async (result) => {
     resolveWithCwd: true,
   });
 
-  // TODO: Remove ignore when refactored into ESM module
-  // eslint-disable-next-line promise/always-return
   if (!silent) {
-    log('log', `Found and ignored ${ignored.size} ${ignored.size === 1 ? 'dependency' : 'dependencies'} across ${sourceFileCount} ${sourceFileCount === 1 ? 'file' : 'files'}:`, [...ignored].sort().join(', '));
+    log(
+      'log',
+      `Found and ignored ${ignored.size} ${ignored.size === 1 ? 'dependency' : 'dependencies'} across ${sourceFileCount} ${sourceFileCount === 1 ? 'file' : 'files'}:`,
+      [...ignored].sort().join(', ')
+    );
   }
-})
-  // TODO: Remove ignore when refactored into ESM module
-  // eslint-disable-next-line unicorn/prefer-top-level-await
-  .catch(err => {
-    log('error', 'An error occured:', messageWithCauses(err.message));
+} catch (err) {
+  if (err instanceof Error) {
+    log('error', 'An error occured:', messageWithCauses(err));
     verboseLog('Stacktrace:');
     verboseLog('', stackWithCauses(err));
-    process.exit(1);
-  });
+  } else {
+    log('error', 'An undefined error occured');
+  }
+
+  process.exit(1);
+}
