@@ -46,13 +46,11 @@ function addIgnore (file, allowedDependencies, ignoreSet, { debugLog, verboseLog
     /** @type {import('ts-morph').Node|undefined} */
     let firstOnLine;
 
-    // TODO: Possibly readd pretty print
-    // const lineNumber = importNode.getStartLineNumber();
+    const lineNumber = importNode.getStartLineNumber();
 
-    // if (lineNumber !== 1 && !importNode.isFirstNodeOnLine()) {
-    //   console.log(true);
-    //   firstOnLine = importNode.getParentWhile(parent => parent.getStartLineNumber() === lineNumber);
-    // }
+    if (lineNumber !== 1 && !importNode.isFirstNodeOnLine()) {
+      firstOnLine = importNode.getParentWhile(parent => parent.getStartLineNumber() === lineNumber && parent.getKind() !== ts.SyntaxKind.SourceFile);
+    }
 
     const lineToComment = firstOnLine || importNode;
 

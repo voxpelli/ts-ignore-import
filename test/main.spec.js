@@ -64,6 +64,29 @@ describe('ts-ignore-import', function () {
 
   it('should respect dry-run');
 
+  it('should respect existing ignores', async () => {
+    const logSpy = sinon.spy();
+
+    await temporaryDirectoryTask(async (tmpDir) => {
+      await cp(join(import.meta.url, 'fixtures/respect-existing-line-ignore'), tmpDir, { recursive: true });
+
+      const originalFile = await readFile(`${tmpDir}/index.d.ts`, { encoding: 'utf8' });
+
+      await addAllIgnores({
+        declarationFilePaths: [`${tmpDir}/**/*.d.ts`],
+        tsConfigFilePath: `${tmpDir}/tsconfig.json`,
+      }, {
+        verboseLog: logSpy,
+      });
+
+      const changedFile = await readFile(`${tmpDir}/index.d.ts`, { encoding: 'utf8' });
+
+      changedFile.should.equal(originalFile);
+    });
+
+    logSpy.should.have.been.calledWith('Ignored 1 for:', 'index.d.ts', 'read-pkg');
+  });
+
   describe('bug fixes', () => {
     it('should not fail on ignoring initial code line when preceded by comment', async () => {
       const logSpy = sinon.spy();
@@ -75,7 +98,6 @@ describe('ts-ignore-import', function () {
           declarationFilePaths: [`${tmpDir}/**/*.d.ts`],
           tsConfigFilePath: `${tmpDir}/tsconfig.json`,
         }, {
-          // verboseLog: console.log.bind(console),
           verboseLog: logSpy,
         });
 
@@ -83,9 +105,9 @@ describe('ts-ignore-import', function () {
         changedFile.should.equal(
 `/**
  */
-export function convertTsExtensionToJs(context:${' '}
+
 // @ts-ignore
-import('eslint').Rule.RuleContext): string;
+export function convertTsExtensionToJs(context: import('eslint').Rule.RuleContext): string;
 `
         );
       });
