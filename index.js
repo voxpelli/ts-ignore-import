@@ -156,7 +156,7 @@ export async function addAllIgnores (target, options = {}) {
       verboseLog('Saving changes of:', verboseLogFilename, 'skipping due to dry-run', true);
     } else {
       verboseLog('Saving changes of:', verboseLogFilename, '', true);
-      file.save();
+      await file.save();
     }
   }
   verboseLog('Completed processing.', '', '', true);
