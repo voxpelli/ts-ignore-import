@@ -10,7 +10,6 @@ import sinonChai from 'sinon-chai';
 import { temporaryDirectoryTask } from 'tempy';
 
 import { addAllIgnores } from '../index.js';
-import { verboseLog } from '../lib/log.js';
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -41,7 +40,7 @@ describe('ts-ignore-import', function () {
   });
 
   it('should apply ignores', async () => {
-    const logSpy = sinon.spy(verboseLog);
+    const logSpy = sinon.spy();
 
     await temporaryDirectoryTask(async (tmpDir) => {
       await cp(join(import.meta.url, 'fixtures/basic'.replaceAll('/', path.sep)), tmpDir, { recursive: true });
