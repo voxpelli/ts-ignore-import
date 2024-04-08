@@ -34,7 +34,7 @@ describe('ts-ignore-import', function () {
 
       return addAllIgnores({
         // Always use forward-slashes in glob patterns: https://github.com/mrmlnc/fast-glob?tab=readme-ov-file#pattern-syntax
-        declarationFilePaths: [path.join(tmpDir.replaceAll(path.sep, '/'), '**/*.d.ts')],
+        declarationFilePaths: [path.posix.join(tmpDir.replaceAll(path.sep, '/'), '**/*.d.ts')],
       });
     })
       .should.be.rejectedWith(Error, 'Can not figure out where to look for tsconfig.json file');
@@ -48,7 +48,7 @@ describe('ts-ignore-import', function () {
       const filePath = path.join(tmpDir, 'index.d.ts');
 
       await addAllIgnores({
-        declarationFilePaths: [path.join(tmpDir.replaceAll(path.sep, '/'), '**/*.d.ts')],
+        declarationFilePaths: [path.posix.join(tmpDir.replaceAll(path.sep, '/'), '**/*.d.ts')],
         tsConfigFilePath: path.join(tmpDir, 'tsconfig.json'),
       }, {
         debug: true,
@@ -78,7 +78,7 @@ describe('ts-ignore-import', function () {
       const originalFile = await readFile(filePath, { encoding: 'utf8' });
 
       await addAllIgnores({
-        declarationFilePaths: [path.join(tmpDir.replaceAll(path.sep, '/'), '**/*.d.ts')],
+        declarationFilePaths: [path.posix.join(tmpDir.replaceAll(path.sep, '/'), '**/*.d.ts')],
         tsConfigFilePath: path.join(tmpDir, 'tsconfig.json'),
       }, {
         verboseLog: logSpy,
@@ -101,7 +101,7 @@ describe('ts-ignore-import', function () {
         const filePath = path.join(tmpDir, 'index.d.ts');
 
         await addAllIgnores({
-          declarationFilePaths: [path.join(tmpDir.replaceAll(path.sep, '/'), '**/*.d.ts')],
+          declarationFilePaths: [path.posix.join(tmpDir.replaceAll(path.sep, '/'), '**/*.d.ts')],
           tsConfigFilePath: path.join(tmpDir, 'tsconfig.json'),
         }, {
           verboseLog: logSpy,
