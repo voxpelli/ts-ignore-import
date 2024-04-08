@@ -56,7 +56,7 @@ describe('ts-ignore-import', function () {
       });
 
       const changedFile = await readFile(filePath, { encoding: 'utf8' });
-      changedFile.should.equal(
+      changedFile.replaceAll('\r\n', '\n').should.equal(
         'export type Foo = \n' +
         '// @ts-ignore\n' +
         'import(\'read-pkg\').NormalizedPackageJson;\n'
@@ -108,7 +108,7 @@ describe('ts-ignore-import', function () {
         });
 
         const changedFile = await readFile(filePath, { encoding: 'utf8' });
-        changedFile.should.equal(
+        changedFile.replaceAll('\r\n', '\n').should.equal(
 `/**
  */
 
