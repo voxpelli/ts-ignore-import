@@ -1,5 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename */
 import { cp, readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
@@ -28,10 +29,11 @@ describe('ts-ignore-import', function () {
 
   it('should throw when tsconfig.json can not be figured out', async () => {
     await temporaryDirectoryTask(async (tmpDir) => {
-      await cp(join(import.meta.url, 'fixtures/no-tsconfig'), tmpDir, { recursive: true });
+      await cp(join(import.meta.url, 'fixtures/no-tsconfig'.replaceAll('/', path.sep)), tmpDir, { recursive: true });
 
       return addAllIgnores({
-        declarationFilePaths: [`${tmpDir}/**/*.d.ts`],
+        // Always use forward-slashes in glob patterns: https://github.com/mrmlnc/fast-glob?tab=readme-ov-file#pattern-syntax
+        declarationFilePaths: [path.posix.join(tmpDir.replaceAll(path.sep, '/'), '**/*.d.ts')],
       });
     })
       .should.be.rejectedWith(Error, 'Can not figure out where to look for tsconfig.json file');
@@ -41,18 +43,19 @@ describe('ts-ignore-import', function () {
     const logSpy = sinon.spy();
 
     await temporaryDirectoryTask(async (tmpDir) => {
-      await cp(join(import.meta.url, 'fixtures/basic'), tmpDir, { recursive: true });
+      await cp(join(import.meta.url, 'fixtures/basic'.replaceAll('/', path.sep)), tmpDir, { recursive: true });
+      const filePath = path.join(tmpDir, 'index.d.ts');
 
       await addAllIgnores({
-        declarationFilePaths: [`${tmpDir}/**/*.d.ts`],
-        tsConfigFilePath: `${tmpDir}/tsconfig.json`,
+        declarationFilePaths: [path.posix.join(tmpDir.replaceAll(path.sep, '/'), '**/*.d.ts')],
+        tsConfigFilePath: path.join(tmpDir, 'tsconfig.json'),
       }, {
-        // verboseLog: console.log.bind(console),
+        debug: true,
         verboseLog: logSpy,
       });
 
-      const changedFile = await readFile(`${tmpDir}/index.d.ts`, { encoding: 'utf8' });
-      changedFile.should.equal(
+      const changedFile = await readFile(filePath, { encoding: 'utf8' });
+      changedFile.replaceAll('\r\n', '\n').should.equal(
         'export type Foo = \n' +
         '// @ts-ignore\n' +
         'import(\'read-pkg\').NormalizedPackageJson;\n'
@@ -68,18 +71,19 @@ describe('ts-ignore-import', function () {
     const logSpy = sinon.spy();
 
     await temporaryDirectoryTask(async (tmpDir) => {
-      await cp(join(import.meta.url, 'fixtures/respect-existing-line-ignore'), tmpDir, { recursive: true });
+      await cp(join(import.meta.url, 'fixtures/respect-existing-line-ignore'.replaceAll('/', path.sep)), tmpDir, { recursive: true });
+      const filePath = path.join(tmpDir, 'index.d.ts');
 
-      const originalFile = await readFile(`${tmpDir}/index.d.ts`, { encoding: 'utf8' });
+      const originalFile = await readFile(filePath, { encoding: 'utf8' });
 
       await addAllIgnores({
-        declarationFilePaths: [`${tmpDir}/**/*.d.ts`],
-        tsConfigFilePath: `${tmpDir}/tsconfig.json`,
+        declarationFilePaths: [path.posix.join(tmpDir.replaceAll(path.sep, '/'), '**/*.d.ts')],
+        tsConfigFilePath: path.join(tmpDir, 'tsconfig.json'),
       }, {
         verboseLog: logSpy,
       });
 
-      const changedFile = await readFile(`${tmpDir}/index.d.ts`, { encoding: 'utf8' });
+      const changedFile = await readFile(filePath, { encoding: 'utf8' });
 
       changedFile.should.equal(originalFile);
     });
@@ -92,17 +96,18 @@ describe('ts-ignore-import', function () {
       const logSpy = sinon.spy();
 
       await temporaryDirectoryTask(async (tmpDir) => {
-        await cp(join(import.meta.url, 'fixtures/jsdoc-in-type-declaration'), tmpDir, { recursive: true });
+        await cp(join(import.meta.url, 'fixtures/jsdoc-in-type-declaration'.replaceAll('/', path.sep)), tmpDir, { recursive: true });
+        const filePath = path.join(tmpDir, 'index.d.ts');
 
         await addAllIgnores({
-          declarationFilePaths: [`${tmpDir}/**/*.d.ts`],
-          tsConfigFilePath: `${tmpDir}/tsconfig.json`,
+          declarationFilePaths: [path.posix.join(tmpDir.replaceAll(path.sep, '/'), '**/*.d.ts')],
+          tsConfigFilePath: path.join(tmpDir, 'tsconfig.json'),
         }, {
           verboseLog: logSpy,
         });
 
-        const changedFile = await readFile(`${tmpDir}/index.d.ts`, { encoding: 'utf8' });
-        changedFile.should.equal(
+        const changedFile = await readFile(filePath, { encoding: 'utf8' });
+        changedFile.replaceAll('\r\n', '\n').should.equal(
 `/**
  */
 
