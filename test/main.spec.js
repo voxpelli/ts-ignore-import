@@ -1,5 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename */
 import { cp, readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
@@ -42,6 +43,7 @@ describe('ts-ignore-import', function () {
 
     await temporaryDirectoryTask(async (tmpDir) => {
       await cp(join(import.meta.url, 'fixtures/basic'), tmpDir, { recursive: true });
+      const filePath = path.join(tmpDir, 'index.d.ts');
 
       await addAllIgnores({
         declarationFilePaths: [`${tmpDir}/**/*.d.ts`],
@@ -51,7 +53,7 @@ describe('ts-ignore-import', function () {
         verboseLog: logSpy,
       });
 
-      const changedFile = await readFile(`${tmpDir}/index.d.ts`, { encoding: 'utf8' });
+      const changedFile = await readFile(filePath, { encoding: 'utf8' });
       changedFile.should.equal(
         'export type Foo = \n' +
         '// @ts-ignore\n' +
@@ -69,8 +71,9 @@ describe('ts-ignore-import', function () {
 
     await temporaryDirectoryTask(async (tmpDir) => {
       await cp(join(import.meta.url, 'fixtures/respect-existing-line-ignore'), tmpDir, { recursive: true });
+      const filePath = path.join(tmpDir, 'index.d.ts');
 
-      const originalFile = await readFile(`${tmpDir}/index.d.ts`, { encoding: 'utf8' });
+      const originalFile = await readFile(filePath, { encoding: 'utf8' });
 
       await addAllIgnores({
         declarationFilePaths: [`${tmpDir}/**/*.d.ts`],
@@ -79,7 +82,7 @@ describe('ts-ignore-import', function () {
         verboseLog: logSpy,
       });
 
-      const changedFile = await readFile(`${tmpDir}/index.d.ts`, { encoding: 'utf8' });
+      const changedFile = await readFile(filePath, { encoding: 'utf8' });
 
       changedFile.should.equal(originalFile);
     });
@@ -93,6 +96,7 @@ describe('ts-ignore-import', function () {
 
       await temporaryDirectoryTask(async (tmpDir) => {
         await cp(join(import.meta.url, 'fixtures/jsdoc-in-type-declaration'), tmpDir, { recursive: true });
+        const filePath = path.join(tmpDir, 'index.d.ts');
 
         await addAllIgnores({
           declarationFilePaths: [`${tmpDir}/**/*.d.ts`],
@@ -101,7 +105,7 @@ describe('ts-ignore-import', function () {
           verboseLog: logSpy,
         });
 
-        const changedFile = await readFile(`${tmpDir}/index.d.ts`, { encoding: 'utf8' });
+        const changedFile = await readFile(filePath, { encoding: 'utf8' });
         changedFile.should.equal(
 `/**
  */
