@@ -10,6 +10,7 @@ import sinonChai from 'sinon-chai';
 import { temporaryDirectoryTask } from 'tempy';
 
 import { addAllIgnores } from '../index.js';
+import { verboseLog } from '../lib/log.js';
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);
@@ -39,7 +40,7 @@ describe('ts-ignore-import', function () {
   });
 
   it('should apply ignores', async () => {
-    const logSpy = sinon.spy();
+    const logSpy = sinon.spy(verboseLog);
 
     await temporaryDirectoryTask(async (tmpDir) => {
       await cp(join(import.meta.url, 'fixtures/basic'.replaceAll('/', path.sep)), tmpDir, { recursive: true });
@@ -49,7 +50,7 @@ describe('ts-ignore-import', function () {
         declarationFilePaths: [path.join(tmpDir, '**/*.d.ts'.replaceAll('/', path.sep))],
         tsConfigFilePath: path.join(tmpDir, 'tsconfig.json'),
       }, {
-        // verboseLog: console.log.bind(console),
+        debug: true,
         verboseLog: logSpy,
       });
 
