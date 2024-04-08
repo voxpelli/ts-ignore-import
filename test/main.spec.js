@@ -29,10 +29,10 @@ describe('ts-ignore-import', function () {
 
   it('should throw when tsconfig.json can not be figured out', async () => {
     await temporaryDirectoryTask(async (tmpDir) => {
-      await cp(join(import.meta.url, 'fixtures/no-tsconfig'), tmpDir, { recursive: true });
+      await cp(join(import.meta.url, 'fixtures/no-tsconfig'.replaceAll('/', path.sep)), tmpDir, { recursive: true });
 
       return addAllIgnores({
-        declarationFilePaths: [`${tmpDir}/**/*.d.ts`],
+        declarationFilePaths: [path.join(tmpDir, '**/*.d.ts'.replaceAll('/', path.sep))],
       });
     })
       .should.be.rejectedWith(Error, 'Can not figure out where to look for tsconfig.json file');
@@ -42,12 +42,12 @@ describe('ts-ignore-import', function () {
     const logSpy = sinon.spy();
 
     await temporaryDirectoryTask(async (tmpDir) => {
-      await cp(join(import.meta.url, 'fixtures/basic'), tmpDir, { recursive: true });
+      await cp(join(import.meta.url, 'fixtures/basic'.replaceAll('/', path.sep)), tmpDir, { recursive: true });
       const filePath = path.join(tmpDir, 'index.d.ts');
 
       await addAllIgnores({
-        declarationFilePaths: [`${tmpDir}/**/*.d.ts`],
-        tsConfigFilePath: `${tmpDir}/tsconfig.json`,
+        declarationFilePaths: [path.join(tmpDir, '**/*.d.ts'.replaceAll('/', path.sep))],
+        tsConfigFilePath: path.join(tmpDir, 'tsconfig.json'),
       }, {
         // verboseLog: console.log.bind(console),
         verboseLog: logSpy,
@@ -70,14 +70,14 @@ describe('ts-ignore-import', function () {
     const logSpy = sinon.spy();
 
     await temporaryDirectoryTask(async (tmpDir) => {
-      await cp(join(import.meta.url, 'fixtures/respect-existing-line-ignore'), tmpDir, { recursive: true });
+      await cp(join(import.meta.url, 'fixtures/respect-existing-line-ignore'.replaceAll('/', path.sep)), tmpDir, { recursive: true });
       const filePath = path.join(tmpDir, 'index.d.ts');
 
       const originalFile = await readFile(filePath, { encoding: 'utf8' });
 
       await addAllIgnores({
-        declarationFilePaths: [`${tmpDir}/**/*.d.ts`],
-        tsConfigFilePath: `${tmpDir}/tsconfig.json`,
+        declarationFilePaths: [path.join(tmpDir, '**/*.d.ts'.replaceAll('/', path.sep))],
+        tsConfigFilePath: path.join(tmpDir, 'tsconfig.json'),
       }, {
         verboseLog: logSpy,
       });
@@ -95,12 +95,12 @@ describe('ts-ignore-import', function () {
       const logSpy = sinon.spy();
 
       await temporaryDirectoryTask(async (tmpDir) => {
-        await cp(join(import.meta.url, 'fixtures/jsdoc-in-type-declaration'), tmpDir, { recursive: true });
+        await cp(join(import.meta.url, 'fixtures/jsdoc-in-type-declaration'.replaceAll('/', path.sep)), tmpDir, { recursive: true });
         const filePath = path.join(tmpDir, 'index.d.ts');
 
         await addAllIgnores({
-          declarationFilePaths: [`${tmpDir}/**/*.d.ts`],
-          tsConfigFilePath: `${tmpDir}/tsconfig.json`,
+          declarationFilePaths: [path.join(tmpDir, '**/*.d.ts'.replaceAll('/', path.sep))],
+          tsConfigFilePath: path.join(tmpDir, 'tsconfig.json'),
         }, {
           verboseLog: logSpy,
         });

@@ -1,4 +1,4 @@
-import { relative } from 'node:path';
+import path from 'node:path';
 
 import { Project, ts } from 'ts-morph';
 
@@ -114,11 +114,11 @@ export async function addAllIgnores (target, options = {}) {
   project.enableLogging(debug);
 
   verboseLog('Paths will be relative to:', projectDirPath);
-  verboseLog('Using tsconfig file at:', relative(projectDirPath, tsConfigFilePath), tsConfigFilePath);
+  verboseLog('Using tsconfig file at:', path.relative(projectDirPath, tsConfigFilePath), tsConfigFilePath);
 
   verboseLog('Adding files...', '', '', true);
   for (const filePath of declarationFilePaths) {
-    verboseLog('Adding file:', relative(projectDirPath, filePath), filePath);
+    verboseLog('Adding file:', path.relative(projectDirPath, filePath), filePath);
     try {
       project.addSourceFileAtPath(filePath);
     } catch (cause) {
@@ -133,7 +133,7 @@ export async function addAllIgnores (target, options = {}) {
   for (const file of project.getSourceFiles()) {
     /** @type {Set<string>} */
     const ignoreSet = new Set();
-    const verboseLogFilename = relative(projectDirPath, file.getFilePath());
+    const verboseLogFilename = path.relative(projectDirPath, file.getFilePath());
 
     verboseLog('Processing:', verboseLogFilename, '', true);
     try {
