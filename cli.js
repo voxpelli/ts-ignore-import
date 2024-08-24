@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { lilconfig } from 'lilconfig';
-import meow from 'meow';
+import { formatHelpMessage, peowly } from 'peowly';
 import { messageWithCauses, stackWithCauses } from 'pony-cause';
 
 import { addAllIgnores } from './index.js';
@@ -11,54 +12,57 @@ import { log, verboseLog as rawVerboseLog } from './lib/log.js';
 
 // *** CLI setup ***
 
-const cli = meow(`
-    Usage
-      $ ts-ignore-import [...declaration files]
-
-    Adds @ts-ignore to imports/requires in TypeScript declaration files. By default it adds it to all imports/requires, but one can mark modules to be exempted from it by using the --allow flag.
-
-    Auto-discoveres tsconfig.json if none has been specified and uto-discoveres a top level index.d.ts declaration file if no specific declaration files has been specified.
-
-    Will traverse all local declaration files depended on by included declaration files and process them as well.
-
-    Core options
-      --allow, -a           Marks a module as allowed. It will then not have a @ts-ignore added. (Already added ignores are kept though)
-      --skip, -s            Skip a specific file. Follows .gitignore syntax. Matched against file paths relative to resolved path of ts-config.
-      --ts-config, -t       Point to a tsconfig.json file to override any auto-discovered one
-
-    Additional options
-      --debug               Activates some very verbose logging
-      --dry-run             Runs everything like normal, but doesn't save any changes
-      --help                When set, this help will be printed
-      --silent              When set, no feedback will be printed
-      --verbose, -v         When set, more verbose feedback will be printed
-      --version             When set, this tools version will be printed
-
-    Examples
-      $ ts-ignore-import --allow=bunyan-adapter path/to/file.d.ts
-`, {
-  flags: {
-    allow: { type: 'string', shortFlag: 'a', isMultiple: true },
-    skip: { type: 'string', shortFlag: 'i', isMultiple: true },
-    tsConfig: { type: 'string', shortFlag: 't' },
-    debug: { type: 'boolean', 'default': false },
-    dryRun: { type: 'boolean', 'default': false },
-    silent: { type: 'boolean', 'default': false },
-    verbose: { type: 'boolean', shortFlag: 'v', 'default': false },
+const flags = /** @satisfies {import('peowly').AnyFlags} */ ({
+  allow: {
+    description: 'Marks a module as allowed. It will then not have a @ts-ignore added. (Already added ignores are kept though)',
+    listGroup: 'Core options',
+    multiple: true,
+    'short': 'a',
+    type: 'string',
   },
-  importMeta: import.meta,
+  skip: {
+    description: 'Skip a specific file. Follows .gitignore syntax. Matched against file paths relative to resolved path of ts-config',
+    listGroup: 'Core options',
+    multiple: true,
+    'short': 'i',
+    type: 'string',
+  },
+  'ts-config': {
+    description: 'Point to a tsconfig.json file to override any auto-discovered one',
+    listGroup: 'Core options',
+    'short': 't',
+    type: 'string',
+  },
+  debug: { type: 'boolean', 'default': false, description: 'Activates some very verbose logging' },
+  'dry-run': { type: 'boolean', 'default': false, description: 'Runs everything like normal, but doesn\'t save any changes' },
+  silent: { type: 'boolean', 'default': false, description: 'When set, no feedback will be printed' },
+  verbose: { type: 'boolean', 'default': false, 'short': 'v', description: 'When set, more verbose feedback will be printed' },
+});
+
+const name = 'ts-ignore-import';
+
+const cli = peowly({
+  help: formatHelpMessage(name, {
+    examples: ['--allow=bunyan-adapter path/to/file.d.ts'],
+    flags,
+    usage: '[...declaration files]',
+  }),
+  name,
+  options: flags,
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
+  pkg: JSON.parse(await readFile(new URL('package.json', import.meta.url), 'utf8')),
 });
 
 const declarationFilePaths = cli.input.length ? cli.input : undefined;
 
 let {
-  tsConfig: tsConfigFilePath,
+  'ts-config': tsConfigFilePath,
 } = cli.flags;
 
 const {
   allow: allowedDependencies,
   debug,
-  dryRun,
+  'dry-run': dryRun,
   silent,
   skip: ignoreFile,
   verbose,
