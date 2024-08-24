@@ -1,5 +1,9 @@
 /* eslint-disable security/detect-non-literal-fs-filename */
-import { cp, readFile } from 'node:fs/promises';
+import {
+  // eslint-disable-next-line n/no-unsupported-features/node-builtins
+  cp,
+  readFile,
+} from 'node:fs/promises';
 import path from 'node:path';
 
 import chai from 'chai';
