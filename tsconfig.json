@@ -10,5 +10,8 @@
   ],
   "exclude": [
     "test/fixtures/**/*"
-  ]
+  ],
+  "compilerOptions": {
+    "types": ["node", "mocha"]
+  }
 }
